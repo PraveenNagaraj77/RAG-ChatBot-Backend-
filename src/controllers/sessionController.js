@@ -1,11 +1,19 @@
 const { v4: uuidv4 } = require('uuid');
 const mysqlService = require('../services/mysqlService');
+const postgresService = require('../services/postgresService');
 const redisService = require('../services/redisService');
 
+const dbService = process.env.NODE_ENV === 'production' ? postgresService : mysqlService;
+
 async function createSession(req, res) {
-  const sessionId = uuidv4();
-  await mysqlService.createSession(sessionId);
-  res.json({ sessionId });
+  try {
+    const sessionId = uuidv4();
+    await dbService.createSession(sessionId);
+    res.json({ sessionId });
+  } catch (err) {
+    console.error('createSession error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 }
 
 async function getHistory(req, res) {
@@ -17,7 +25,7 @@ async function getHistory(req, res) {
       return res.json({ history: redisHistory.reverse() });
     }
 
-    const rows = await mysqlService.getMessages(id);
+    const rows = await dbService.getMessages(id);
     const history = rows
       .map(r => ({
         role: r.role,
@@ -28,16 +36,21 @@ async function getHistory(req, res) {
 
     return res.json({ history });
   } catch (err) {
-    console.error("Error fetching history:", err);
+    console.error("getHistory error:", err);
     return res.status(500).json({ error: err.message });
   }
 }
 
 async function resetSession(req, res) {
   const { id } = req.params;
-  await redisService.clearSession(id);
-  await mysqlService.clearSession(id);
-  res.json({ ok: true });
+  try {
+    await redisService.clearSession(id);
+    await dbService.clearSession(id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("resetSession error:", err);
+    res.status(500).json({ error: err.message });
+  }
 }
 
 module.exports = { createSession, getHistory, resetSession };

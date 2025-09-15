@@ -5,11 +5,15 @@ const http = require('http');
 const { Server } = require('socket.io');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+
 const sessionRoutes = require('./routes/session');
 const messageRoutes = require('./routes/message');
 const redisDebugRouter = require("./routes/redisDebug");
 const redisService = require('./services/redisService');
+
 const mysqlService = require('./services/mysqlService');
+const postgresService = require('./services/postgresService'); // Postgres
+
 const config = require('./config');
 
 const app = express();
@@ -22,18 +26,21 @@ const io = new Server(server, {
   }
 });
 
+
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
-
 app.use(bodyParser.json());
+
 app.use('/api/session', sessionRoutes);
 app.use('/api', messageRoutes);
 app.use("/api", redisDebugRouter);
 
+
 app.get('/health', (req, res) => res.json({ ok: true }));
+
 
 io.on('connection', (socket) => {
   console.log('Socket connected', socket.id);
@@ -42,9 +49,19 @@ io.on('connection', (socket) => {
   });
 });
 
+
 async function start() {
   await redisService.connectRedis();
-  await mysqlService.init();
+
+
+  if (process.env.POSTGRES_HOST) {
+    console.log('Using PostgreSQL');
+    await postgresService.init();
+  } else {
+    console.log('Using MySQL');
+    await mysqlService.init();
+  }
+
   server.listen(config.port, () => {
     console.log(`Server listening on ${config.port}`);
   });
