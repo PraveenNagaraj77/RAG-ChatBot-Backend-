@@ -25,7 +25,8 @@ The backend uses a **RAG pipeline** to answer queries over news articles:
 1. **Ingested Articles:**  
    - ~50 news articles were ingested from **RSS feeds**.  
    - The ingestion was done manually initially and is now scheduled to run automatically every day via **GitHub Actions**.  
-   
+   - Articles are stored in the backend for indexing.
+
 2. **Receive Query:**  
    - Backend receives a query from frontend via REST API or Socket.io.
 
@@ -43,13 +44,26 @@ The backend uses a **RAG pipeline** to answer queries over news articles:
 6. **Persistence (Optional):**  
    - Store transcripts in **MySQL/PostgreSQL** for analytics or record-keeping.
 
-```mermaid
-graph LR
-A[User] -->|Send query| B[Frontend (React)]
-B -->|API / Socket| C[Backend Express + Socket.io]
-C --> D[Vector DB: Pinecone - retrieve top-k embeddings from 50 ingested articles]
-D --> E[Google Gemini API - generate answer]
-E --> C
-C --> F[Redis - session chat history]
-C --> B[Return response]
-C --> G[MySQL/Postgres - store transcripts]
+**Flow Summary in Plain Text:**
+
+- User sends query → Frontend (React) → Backend Express + Socket.io → Retrieve top-k relevant articles from Pinecone → Google Gemini API generates response → Store in Redis → Return response to frontend → Optional transcript saved in MySQL/Postgres.
+
+---
+
+### API Endpoints
+
+| Endpoint              | Method | Description                              |
+|----------------------|--------|------------------------------------------|
+| `/chat`               | POST   | Send a user query and get a response     |
+| `/:sessionId/history` | GET    | Fetch chat history for a session         |
+| `/:sessionId/reset`   | POST   | Reset/clear chat history                 |
+| `/health`             | GET    | Health check endpoint                     |
+
+**Example Request:**
+
+```json
+POST /chat
+{
+  "sessionId": "1234-5678",
+  "message": "Tell me the latest news about AI"
+}
