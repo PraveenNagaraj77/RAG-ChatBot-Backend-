@@ -2,20 +2,25 @@ name: News Ingest
 
 on:
   schedule:
-    - cron: "0 2 * * *"
-  workflow_dispatch:
+    - cron: "0 2 * * *"   # runs every day at 02:00 UTC
+  workflow_dispatch:        # allow manual trigger
 
 jobs:
   ingest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
         with:
           node-version: 20
+
       - run: npm install
+
       - run: node src/scripts/ingest.js
         env:
           PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
           PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
           PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
+          JINA_API_URL: ${{ secrets.JINA_API_URL }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
