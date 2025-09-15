@@ -21,12 +21,12 @@ async function upsertPoints(points = []) {
   try {
     const vectors = points.map((p) => ({
       id: p.id.toString(),
-      values: p.vector,
+      values: p.values,       // must match ingest.js
       metadata: p.metadata || {},
     }));
 
     console.log(`Upserting ${vectors.length} vectors to Pinecone...`);
-    await index.upsert(vectors);
+    await index.upsert(vectors);  // ✅ just pass the array
     console.log(`Upserted ${vectors.length} points to Pinecone`);
 
     return { upsertedCount: vectors.length };
@@ -35,7 +35,6 @@ async function upsertPoints(points = []) {
     throw err;
   }
 }
-
 async function searchVector(vector, top = 4) {
   try {
     console.log('Searching Pinecone for top', top, 'vectors...');

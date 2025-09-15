@@ -32,9 +32,16 @@ async function embedArticles(articles) {
   for (const article of articles) {
     try {
       const [vector] = await embed(article.content);
+
+      // Skip if embedding failed or returned empty
+      if (!vector || vector.length === 0) {
+        console.warn(`Skipping article ${article.id}: embedding failed`);
+        continue;
+      }
+
       points.push({
         id: article.id,
-        vector,
+        values: vector, // Pinecone requires 'values' for dense vectors
         metadata: {
           title: article.title,
           url: article.url,
@@ -56,8 +63,12 @@ async function ingestNews() {
   const points = await embedArticles(articles);
   console.log(`Upserting ${points.length} articles to Pinecone...`);
 
-  await upsertPoints(points);
-  console.log('Ingestion complete!');
+  if (points.length > 0) {
+    await upsertPoints(points);
+    console.log('Ingestion complete!');
+  } else {
+    console.log('No valid embeddings to upsert.');
+  }
 }
 
 ingestNews().catch(console.error);
